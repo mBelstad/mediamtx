@@ -767,3 +767,5 @@ paths:
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
   all_others:
+  # Value for Access-Control-Allow-Origin on WebRTC endpoints
+webrtcAllowOrigin: "https://vdo.itagenten.no"
