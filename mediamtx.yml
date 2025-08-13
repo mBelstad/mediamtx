@@ -769,3 +769,4 @@ paths:
   all_others:
   # Value for Access-Control-Allow-Origin on WebRTC endpoints
 webrtcAllowOrigin: "https://vdo.itagenten.no"
+hlsAllowOrigin: "https://vdo.itagenten.no"
