@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  mediamtx:
+    image: ghcr.io/bluenviron/mediamtx:latest
+    container_name: mediamtx
+    restart: unless-stopped
+
+    # Only publish UDP for WebRTC; let Traefik handle HTTPS → 8889
+    ports:
+      - "8200-8220:8200-8220/udp"   # match mediamtx.yml ICE UDP min/max
+      # If you need direct access to other protocols (usually not when behind Traefik), uncomment:
+      # - "8554:8554/tcp"           # RTSP
+      # - "1935:1935/tcp"           # RTMP
+      # - "8888:8888/tcp"           # HLS
+      # - "9997:9997/tcp"           # Control API
+
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+      - ./recordings:/recordings
+
+    networks:
+      - coolify   # <-- must be the SAME network Traefik uses in Coolify
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify   # <-- set to Traefik’s network name
+
+      # Router (HTTPS only; Coolify/Traefik will auto-redirect HTTP→HTTPS)
+      - traefik.http.routers.mtx.rule=Host(`streamserv.itagenten.no`)
+      - traefik.http.routers.mtx.entrypoints=https
+      - traefik.http.routers.mtx.tls=true
+      # If your Traefik in Coolify has a cert resolver (often "letsencrypt"), add:
+      # - traefik.http.routers.mtx.tls.certresolver=letsencrypt
+
+      # Service points to container’s WHIP/WHEP port
+      - traefik.http.services.mtx.loadbalancer.server.port=8889
+
+      # CORS for WHIP/WHEP
+      - traefik.http.middlewares.mtx-cors.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.mtx-cors.headers.accessControlAllowMethods=GET,POST,OPTIONS
+      - traefik.http.middlewares.mtx-cors.headers.accessControlAllowHeaders=Content-Type,Authorization
+      - traefik.http.middlewares.mtx-cors.headers.accessControlAllowCredentials=true
+      - traefik.http.middlewares.mtx-cors.headers.accessControlExposeHeaders=ETag
+      - traefik.http.routers.mtx.middlewares=mtx-cors@docker
+
+networks:
+  coolify:
+    external: true
